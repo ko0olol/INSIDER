@@ -104,7 +104,7 @@ function App() {
         <InsiderRevealScreen word={word} onNext={() => setPhase('TIMER')} />
       )}
       {phase === 'TIMER' && (
-        <TimerScreen gameTimeMinutes={gameTimeMinutes} onStopGame={handleStopGame} />
+        <TimerScreen gameTimeMinutes={gameTimeMinutes} onStopGame={handleStopGame} word={word} setWord={setWord} />
       )}
       {phase === 'VOTING' && (
         <VotingScreen allPlayers={players} host={host} onVoteFinished={handleVoteFinished} />
