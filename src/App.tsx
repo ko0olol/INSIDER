@@ -22,19 +22,38 @@ function App() {
   const [playerRoles, setPlayerRoles] = useState<PlayerRoleMap>({});
   const [timeUsedSeconds, setTimeUsedSeconds] = useState(0);
   const [votedPlayerId, setVotedPlayerId] = useState<string>('');
+  const [lastInsiderId, setLastInsiderId] = useState<string>(''); 
 
   const nonHostPlayers = players.filter((p) => p.id !== host?.id);
 
-  const initGameSession = (currentPlayers: Player[]) => {
-    // 1. สุ่มหา Host
-    const randomHostIndex = Math.floor(Math.random() * currentPlayers.length);
-    const selectedHost = currentPlayers[randomHostIndex];
+  // 👑 ปรับปรุงให้รองรับการส่ง forceHostId เพื่อล็อกตัวโฮสต์ในตาถัดไป
+  const initGameSession = (currentPlayers: Player[], forceHostId?: string) => {
+    let selectedHost: Player;
+
+    // ตรวจสอบว่ามีโฮสต์ที่สืบทอดมาจากตำแหน่ง Insider ตาที่แล้วไหม
+    if (forceHostId) {
+      const foundPlayer = currentPlayers.find((p) => p.id === forceHostId);
+      if (foundPlayer) {
+        selectedHost = foundPlayer;
+      } else {
+        // กันเหนียว: ถ้าคนนั้นกดออกจากปาร์ตี้ไปในหน้าแรก ให้สุ่มใหม่ทดแทน
+        const randomHostIndex = Math.floor(Math.random() * currentPlayers.length);
+        selectedHost = currentPlayers[randomHostIndex];
+      }
+    } else {
+      // 🎲 ตาแรกสุด หรือกดกลับหน้าหลัก ให้สุ่มหาตามปกติ
+      const randomHostIndex = Math.floor(Math.random() * currentPlayers.length);
+      selectedHost = currentPlayers[randomHostIndex];
+    }
     setHost(selectedHost);
 
     // 2. สุ่มหา Insider จากกลุ่มคนที่เหลือที่ไม่ใช่ Host
     const activePool = currentPlayers.filter((p) => p.id !== selectedHost.id);
     const randomInsiderIndex = Math.floor(Math.random() * activePool.length);
     const selectedInsider = activePool[randomInsiderIndex];
+
+    // 💾 บันทึก ID ของ Insider ตานี้ไว้สำหรับใช้เป็นโฮสต์รอบหน้า
+    setLastInsiderId(selectedInsider.id);
 
     // 3. แมป Role ใส่ State
     const roles: PlayerRoleMap = {};
@@ -48,7 +67,7 @@ function App() {
 
   const handleStartGame = () => {
     if (players.length < 4) return;
-    initGameSession(players);
+    initGameSession(players); // เริ่มตาแรก สุ่มโฮสต์ปกติ 100%
   };
 
   const handleConfirmWord = (selectedWord: string) => {
@@ -66,13 +85,15 @@ function App() {
     setPhase('RESULTS');
   };
 
+  // 🔄 ปุ่มเล่นอีกครั้ง: บังคับส่งดึงตำแหน่ง Insider เก่าขึ้นมาเป็น Host
   const handlePlayAgain = () => {
     setWord('');
     setTimeUsedSeconds(0);
     setVotedPlayerId('');
-    initGameSession(players);
+    initGameSession(players, lastInsiderId); 
   };
 
+  // 🛑 ปุ่มกลับหน้าหลัก: ล้างความจำ Insider เก่าออกให้หมด เพื่อสุ่มนับหนึ่งใหม่
   const handleResetAll = () => {
     setPhase('SETUP');
     setHost(null);
@@ -80,6 +101,7 @@ function App() {
     setPlayerRoles({});
     setTimeUsedSeconds(0);
     setVotedPlayerId('');
+    setLastInsiderId(''); // ล้างสิทธิ์ล็อกโฮสต์
   };
 
   return (
@@ -126,6 +148,7 @@ function App() {
 }
 
 export default App;
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
